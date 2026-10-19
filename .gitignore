@@ -1,1 +1,9 @@
+# Keep credentials and local environment files private.
 .env
+
+# Exclude generated Python cache files.
+__pycache__/
+*.py[cod]
+
+# Exclude local virtual environments.
+.venv/
