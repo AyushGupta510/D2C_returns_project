@@ -1,33 +1,38 @@
 
-from sqlalchemy import URL, create_engine, text
-from config import DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME
+from pathlib import Path
+import os
 
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
 
-# Build the connection URL safely, including passwords with special characters.
-connection_url = URL.create(
-    drivername="postgresql+psycopg",
-    username=DB_USER,
-    password=DB_PASSWORD,
-    host=DB_HOST,
-    port=DB_PORT,
-    database=DB_NAME,
-)
+# Locate the project root and load its .env configuration.
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env")
 
-# Reuse a connection pool rather than creating a new engine for each request.
+# Read the Supabase connection URL without hardcoding credentials.
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is missing from the project .env file.")
+
+# Use psycopg 3 and require encrypted communication with Supabase.
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://", "postgresql+psycopg://", 1
+    )
+
 engine = create_engine(
-    connection_url,
-    pool_pre_ping=True,  # Detect stale connections before using them.
-    pool_size=5,         # Keep a small pool for this application.
-    max_overflow=5,      # Allow temporary additional connections under load.
-    pool_timeout=10,     # Avoid waiting indefinitely for a connection.
-    pool_recycle=1800,   # Periodically recycle long-lived connections.
+    DATABASE_URL,
+    connect_args={"sslmode": "require"},
+    pool_pre_ping=True,  # Check stale connections before using them.
+    pool_size=5,
+    max_overflow=5,
+    pool_timeout=10,
 )
 
-
-def check_database_connection() -> bool:
-    """Verify that PostgreSQL is reachable."""
+def check_database_connection():
+    # Verify that the application can reach the cloud database.
     with engine.connect() as connection:
-        # A lightweight query confirms the connection is usable.
-        connection.execute(text("SELECT 1"))
-
-    return True
+        return connection.execute(
+            text("SELECT current_database()")
+        ).scalar_one()
