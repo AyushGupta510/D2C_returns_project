@@ -1,26 +1,38 @@
+
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from sqlalchemy.engine import make_url
 
-# Locate .env relative to this file, not the notebook's working directory.
+# Locate the root .env file relative to this module.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(PROJECT_ROOT / ".env", override=False)
+ENV_PATH = PROJECT_ROOT / ".env"
+
+# Load the project configuration, overriding stale environment values.
+load_dotenv(ENV_PATH, override=True)
+
 
 def get_required_setting(name: str) -> str:
-    # Fail clearly if a required credential is missing.
+    # Fail early with a clear message if a credential is missing.
     value = os.getenv(name)
     if not value:
         raise RuntimeError(
-            f"Missing environment variable: {name}. Check your .env file."
+            f"Missing environment variable: {name}. "
+            f"Check {ENV_PATH}"
         )
     return value
 
 
-# Centralize database and LLM configuration for the entire application.
+# Centralized LLM configuration.
 GROQ_API_KEY = get_required_setting("GROQ_API_KEY")
 
-DB_USER = get_required_setting("DB_USER")
-DB_PASSWORD = get_required_setting("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT", "5432"))
-DB_NAME = os.getenv("DB_NAME", "d2c_returns_db")
+# Use one connection URL for the Supabase PostgreSQL database.
+DATABASE_URL = get_required_setting("DATABASE_URL")
+
+# Normalize the SQLAlchemy driver without exposing credentials.
+url = make_url(DATABASE_URL)
+
+if url.drivername == "postgresql":
+    url = url.set(drivername="postgresql+psycopg")
+
+DATABASE_URL = url.render_as_string(hide_password=False)
