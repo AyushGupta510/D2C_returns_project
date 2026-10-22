@@ -7,15 +7,20 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 
-from config import GROQ_API_KEY, GROQ_MODEL
+from config import GROQ_API_KEY
+
+# Use the Groq model that worked in your notebook.
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 
 # Find the policy file relative to this Python module,
 # not relative to the terminal's current directory.
+# Locate the phase_1 directory relative to this file.
 SOURCE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SOURCE_DIR.parents[1]
-POLICY_PATH = PROJECT_ROOT / "documents" / "return_policy.txt"
+PHASE_DIR = SOURCE_DIR.parent
 
+# Build the absolute path to the policy document.
+POLICY_PATH = PHASE_DIR / "documents" / "return_policy.txt"
 
 def build_policy_retriever():
     """Load the return policy and build a searchable FAISS index."""
