@@ -7,6 +7,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 
+import streamlit as st
+
 from config import GROQ_API_KEY
 
 # Use the Groq model that worked in your notebook.
@@ -22,8 +24,9 @@ PHASE_DIR = SOURCE_DIR.parent
 # Build the absolute path to the policy document.
 POLICY_PATH = PHASE_DIR / "documents" / "return_policy.txt"
 
+# Reuse the FAISS index across Streamlit reruns instead of rebuilding it.
+@st.cache_resource
 def build_policy_retriever():
-    """Load the return policy and build a searchable FAISS index."""
 
     # Stop early with a clear message if the policy file is missing.
     if not POLICY_PATH.exists():
